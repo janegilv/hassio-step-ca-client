@@ -23,18 +23,16 @@ CERTFILE="/ssl/$(bashio::config 'certfile')"
 CONFIG_SANS=$(bashio::config 'subjects' | sed '/^$/d' | sort)
 
 # 2. Get Certificate SANs: We use '.names[]' which includes CN + SANs
-# This handles the JSON structure you pasted correctly.
 CERT_SANS=$(step certificate inspect "${CERTFILE}" --format json | jq -r '.names[]' | sort)
 
-# 3. Compare the lists
 if [ "$CONFIG_SANS" != "$CERT_SANS" ]; then
     bashio::log.warning "---------------------------------------------------"
-    bashio::log.warning "CERTIFICATE SAN MISMATCH DETECTED!"
-    bashio::log.warning "The generated certificate does not cover all configured subjects."
+    bashio::log.warning "CERTIFICATE MISMATCH DETECTED!"
+    bashio::log.warning "The generated certificate does not match configured SANs."
     bashio::log.warning ""
     # Flatten output for logging
-    bashio::log.warning "Configured List: $(echo "$CONFIG_SANS" | tr '\n' ' ')"
-    bashio::log.warning "Certificate List: $(echo "$CERT_SANS" | tr '\n' ' ')"
+    bashio::log.warning "Add-on configured SANs: $(echo "$CONFIG_SANS" | tr '\n' ' ')"
+    bashio::log.warning "Certificate SANs: $(echo "$CERT_SANS" | tr '\n' ' ')"
     bashio::log.warning "---------------------------------------------------"
 else
     bashio::log.info "Certificate verified: SANs match configuration."
