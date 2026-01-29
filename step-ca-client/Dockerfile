@@ -6,6 +6,7 @@ FROM ${BUILD_FROM}
 COPY rootfs /
 
 # Setup base
+# hadolint ignore=DL3018
 RUN apk add --no-cache \
     step-cli
 
