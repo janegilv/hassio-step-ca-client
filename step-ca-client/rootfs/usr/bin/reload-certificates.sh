@@ -12,6 +12,36 @@
 # ==============================================================================
 set -e
 
+CERTFILE="/ssl/$(bashio::config 'certfile')"
+
+
+# ------------------------------------------------------------------------------
+# SAN Verification Logic
+# ------------------------------------------------------------------------------
+
+# 1. Get Configured SANs: Remove empty lines, sort alphabetically
+CONFIG_SANS=$(bashio::config 'subjects' | sed '/^$/d' | sort)
+
+# 2. Get Certificate SANs: We use '.names[]' which includes CN + SANs
+# This handles the JSON structure you pasted correctly.
+CERT_SANS=$(step certificate inspect "${CERTFILE}" --format json | jq -r '.names[]' | sort)
+
+# 3. Compare the lists
+if [ "$CONFIG_SANS" != "$CERT_SANS" ]; then
+    bashio::log.warning "---------------------------------------------------"
+    bashio::log.warning "CERTIFICATE SAN MISMATCH DETECTED!"
+    bashio::log.warning "The generated certificate does not cover all configured subjects."
+    bashio::log.warning ""
+    # Flatten output for logging
+    bashio::log.warning "Configured List: $(echo "$CONFIG_SANS" | tr '\n' ' ')"
+    bashio::log.warning "Certificate List: $(echo "$CERT_SANS" | tr '\n' ' ')"
+    bashio::log.warning "---------------------------------------------------"
+else
+    bashio::log.info "Certificate verified: SANs match configuration."
+fi
+# ------------------------------------------------------------------------------
+
+
 bashio::log.notice "Services need to be restarted so new certificates are loaded"
 bashio::log.info "Restarting will be delayed 5m to avoid losing connectivity on add-on start"
 bashio::log.info "If you want to force it, you can always restart this add-on and do it manually"
